@@ -1,13 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 import { Network } from 'vis-network';
 import { DataSet } from 'vis-data';
+import { getSymbolColor } from '../lib/alphabetColors.ts';
 
 interface GraphViewProps {
   nodes: { id: string | number, label: string, isAccept?: boolean, isStart?: boolean }[];
-  edges: { from: string | number, to: string | number, label: string }[];
+  edges: { id?: number, from: string | number, to: string | number, label: string }[];
   onSelectNode?: (nodeId: string) => void;
   onSelectEdge?: (edgeIndex: number) => void;
   onDeselect?: () => void;
+  /** Node currently "lit up" by the live simulator trace (or a stage preview). */
+  activeNodeId?: string | number | null;
+  /** Index (matches edges[].id) of the transition just taken by the trace. */
+  activeEdgeId?: number | null;
 }
 
 export const GraphView: React.FC<GraphViewProps> = ({
@@ -15,7 +20,9 @@ export const GraphView: React.FC<GraphViewProps> = ({
   edges,
   onSelectNode,
   onSelectEdge,
-  onDeselect
+  onDeselect,
+  activeNodeId = null,
+  activeEdgeId = null
 }) => {
   const container = useRef<HTMLDivElement>(null);
   const networkRef = useRef<Network | null>(null);
@@ -33,34 +40,54 @@ export const GraphView: React.FC<GraphViewProps> = ({
     onDeselectRef.current = onDeselect;
   }, [onSelectNode, onSelectEdge, onDeselect]);
 
-  useEffect(() => {
-    if (!container.current) return;
-
-    // Map properties to vis-network formats
-    const nodesMapped = nodes.map(n => ({
+  // Build a node's visual style, factoring in whether it's the live-trace's
+  // current state. Kept as a function (not baked into nodesMapped) so the
+  // active-highlight effect below can restyle a single node without
+  // rebuilding/reflowing the whole graph.
+  const styleNode = (n: GraphViewProps['nodes'][number]) => {
+    const isActive = activeNodeId != null && String(activeNodeId) === String(n.id);
+    return {
       id: n.id,
       label: n.label,
       shape: n.isAccept ? 'doublecircle' : 'circle',
       color: {
-        background: n.isStart ? '#3b82f6' : (n.isAccept ? '#10b981' : '#1e293b'),
-        border: n.isStart ? '#60a5fa' : (n.isAccept ? '#34d399' : '#475569'),
+        background: isActive ? '#facc15' : (n.isStart ? '#3b82f6' : (n.isAccept ? '#10b981' : '#1e293b')),
+        border: isActive ? '#fde047' : (n.isStart ? '#60a5fa' : (n.isAccept ? '#34d399' : '#475569')),
         highlight: { background: '#8b5cf6', border: '#a78bfa' }
       },
-      font: { color: '#f8fafc', face: 'Inter' },
-      borderWidth: n.isAccept ? 3 : 2,
-      shadow: true
-    }));
+      font: { color: isActive ? '#0a0c10' : '#f8fafc', face: 'JetBrains Mono, monospace', size: 15 },
+      borderWidth: isActive ? 4 : (n.isAccept ? 3 : 2),
+      // A soft glow standing in for a "pulse" — vis-network nodes don't
+      // support CSS keyframe animation, so the active state gets a strong,
+      // unambiguous static treatment instead of a fake-looking flicker.
+      shadow: isActive
+        ? { enabled: true, color: 'rgba(250, 204, 21, 0.65)', size: 22, x: 0, y: 0 }
+        : true
+    };
+  };
 
-    const edgesMapped = edges.map((e, i) => ({
-      id: `e${i}`,
+  const styleEdge = (e: GraphViewProps['edges'][number], i: number) => {
+    const id = e.id ?? i;
+    const isActive = activeEdgeId != null && activeEdgeId === id;
+    const symbolColor = getSymbolColor(e.label);
+    return {
+      id: `e${id}`,
       from: e.from,
       to: e.to,
       label: e.label,
       arrows: 'to',
-      font: { align: 'horizontal', color: '#94a3b8', background: '#0f172a' },
-      color: { color: '#64748b', highlight: '#a78bfa' },
+      font: { align: 'horizontal', color: isActive ? '#facc15' : symbolColor, background: '#0f172a', face: 'JetBrains Mono, monospace' },
+      color: { color: isActive ? '#facc15' : symbolColor, highlight: '#a78bfa', opacity: isActive ? 1 : 0.85 },
+      width: isActive ? 3.5 : 1.5,
       smooth: { enabled: true, type: 'curvedCW', roundness: 0.2 }
-    }));
+    };
+  };
+
+  useEffect(() => {
+    if (!container.current) return;
+
+    const nodesMapped = nodes.map(styleNode);
+    const edgesMapped = edges.map(styleEdge);
 
     if (!networkRef.current) {
       // 1. Initial setup: create datasets and network instance
@@ -114,6 +141,20 @@ export const GraphView: React.FC<GraphViewProps> = ({
       networkRef.current.on('deselectEdge', () => {
         if (onDeselectRef.current) onDeselectRef.current();
       });
+
+      // Dotted "blueprint plane" that pans and zooms with the graph instead
+      // of sitting static behind it — keeps the canvas feeling alive even
+      // once physics settles, without animating anything that would
+      // compete with the simulator's active-state glow.
+      networkRef.current.on('afterDrawing', () => {
+        if (!container.current || !networkRef.current) return;
+        const scale = networkRef.current.getScale();
+        const pos = networkRef.current.getViewPosition();
+        const size = Math.max(10, 28 * scale);
+        container.current.style.backgroundSize = `${size}px ${size}px`;
+        container.current.style.backgroundPosition =
+          `${(-pos.x * scale) % size}px ${(-pos.y * scale) % size}px`;
+      });
     } else {
       // 2. Subsequent updates: update existing datasets in-place to prevent layout jumps
       const currentNodes = nodesDataSetRef.current!;
@@ -137,7 +178,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
       }
       currentEdges.update(edgesMapped);
     }
-  }, [nodes, edges]);
+  }, [nodes, edges, activeNodeId, activeEdgeId]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -149,5 +190,11 @@ export const GraphView: React.FC<GraphViewProps> = ({
     };
   }, []);
 
-  return <div ref={container} className="vis-container" style={{ width: '100%', height: '100%' }} />;
+  return (
+    <div
+      ref={container}
+      className="vis-container vis-container-grid"
+      style={{ width: '100%', height: '100%' }}
+    />
+  );
 };

@@ -1,17 +1,54 @@
+/* ==========================================================================
+   Automata Lab — design tokens
+   Direction: a formal-languages tool should look like an engineering
+   instrument, not a SaaS marketing page. Flat panels, hairline borders,
+   monospace for anything structural (labels, buttons, headers), a single
+   restrained accent, and a faint blueprint dot-grid instead of a gradient.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
 :root {
-  --bg-color: #0f172a;
-  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  --panel-bg: rgba(30, 41, 59, 0.7);
-  --panel-border: rgba(255, 255, 255, 0.1);
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --accent: #8b5cf6;
-  --accent-hover: #7c3aed;
-  
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --bg-color: #0a0c10;
+  --bg-color-alt: #0d1016;
+  --panel-bg: #11151c;
+  --panel-bg-alt: #151a22;
+  --panel-border: #242b36;
+  --panel-border-hover: #323b49;
+
+  --text-main: #e6e9ef;
+  --text-muted: #6e7681;
+  --text-dim: #4b525e;
+
+  /* Single accent, used consistently for anything interactive/active.
+     A desaturated circuit-trace blue rather than the previous
+     blue+violet pairing — one signal, not two competing ones. */
+  --primary: #5b8def;
+  --primary-hover: #4576db;
+  --primary-dim: rgba(91, 141, 239, 0.12);
+  --primary-border: rgba(91, 141, 239, 0.45);
+
+  /* Kept only for semantic states already wired elsewhere (errors). */
+  --danger: #ef4444;
+  --danger-dim: rgba(239, 68, 68, 0.1);
+  --success: #3ecf8e;
+
+  /* Reserved for the live simulator / stage-preview "current state" glow —
+     kept separate from --primary so "selected in the editor" and
+     "currently active in a run" never look like the same thing. */
+  --live: #facc15;
+  --live-dim: rgba(250, 204, 21, 0.14);
+
+  --glass-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.3);
+  /* IBM Plex Mono: designed for code/computation rather than general UI
+     text, which suits state labels and transition tables better than a
+     general-purpose grotesk-mono like the previous face. */
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-family: var(--font-sans);
+
+  --radius: 6px;
+  --radius-sm: 4px;
 }
 
 * {
@@ -21,7 +58,10 @@
 }
 
 body {
-  background: var(--bg-gradient);
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    var(--bg-color);
+  background-size: 28px 28px, auto;
   color: var(--text-main);
   font-family: var(--font-family);
   min-height: 100vh;
@@ -29,40 +69,84 @@ body {
 }
 
 /* Typography */
-h1, h2, h3 {
+h1,
+h2,
+h3 {
+  font-family: var(--font-mono);
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.01em;
 }
 
 .title {
-  font-size: 2rem;
-  background: linear-gradient(to right, var(--primary), var(--accent));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 1rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
 }
 
-/* Glassmorphism utility */
+.title::before {
+  content: '>';
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.title::after {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 1rem;
+  background: var(--primary);
+  margin-left: 0.15rem;
+  animation: blink-cursor 1.1s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title::after {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+@keyframes blink-cursor {
+
+  0%,
+  49% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Flat panel utility — replaces blurred glassmorphism with a plain
+   hairline-bordered surface. Kept the same class name so no component
+   markup needs to change. */
 .glass-panel {
   background: var(--panel-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--panel-border);
-  border-radius: 16px;
+  border-radius: 10px;
   box-shadow: var(--glass-shadow);
 }
 
-/* Button utility */
+/* Button utility — rectangular, hairline border, color shifts on hover
+   instead of a floaty lift/shadow. Monospace label to match the tool's
+   "instrument panel" register. */
 .btn {
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-main);
+  border: 1px solid var(--panel-border);
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
   font-weight: 500;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -70,35 +154,63 @@ h1, h2, h3 {
 }
 
 .btn:hover {
-  background: var(--primary-hover);
-  transform: translateY(-2px);
+  border-color: var(--primary-border);
+  background: var(--primary-dim);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  border-color: var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .btn-accent {
-  background: var(--accent);
+  background: var(--primary-dim);
+  border-color: var(--primary-border);
+  color: var(--primary);
 }
 
 .btn-accent:hover {
-  background: var(--accent-hover);
+  background: rgba(91, 141, 239, 0.22);
+  border-color: var(--primary);
+}
+
+.btn-live {
+  background: var(--live-dim);
+  border-color: rgba(250, 204, 21, 0.5);
+  color: var(--live);
+}
+
+.btn-live:hover {
+  background: rgba(250, 204, 21, 0.22);
+  border-color: var(--live);
 }
 
 /* Input utility */
 .input-field {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius);
   border: 1px solid var(--panel-border);
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--bg-color-alt);
   color: var(--text-main);
-  font-family: monospace;
-  font-size: 1.1rem;
-  transition: all 0.2s ease;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-field::placeholder {
+  color: var(--text-dim);
 }
 
 .input-field:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px var(--primary-dim);
 }
 
 /* Layout */
@@ -114,22 +226,24 @@ h1, h2, h3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 2rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px dashed var(--panel-border);
 }
 
 .main-content {
   display: flex;
   flex: 1;
   gap: 1.5rem;
-  min-height: 0; /* Important for flex children scrolling */
+  min-height: 0;
+  /* Important for flex children scrolling */
 }
 
 .controls-sidebar {
   width: 350px;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.5rem;
+  gap: 1.25rem;
+  padding: 1.25rem;
   overflow-y: auto;
 }
 
@@ -147,19 +261,35 @@ h1, h2, h3 {
   height: 100%;
 }
 
+/* The "infinite blueprint plane" — a dotted grid that GraphView pans and
+   scales in JS (via afterDrawing → backgroundPosition/backgroundSize) to
+   track the network's viewport. Ambient and static-feeling once the graph
+   stops moving, rather than looping/animating on its own — it should read
+   as "this is a plane you're looking at a piece of," not as motion competing
+   with the simulator's active-state glow. */
+.vis-container-grid {
+  background-color: var(--bg-color-alt);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
 .steps-panel {
-  margin-top: 1.5rem;
-  padding: 1.5rem;
+  margin-top: 1.25rem;
+  padding: 1.25rem;
   max-height: 250px;
   overflow-y: auto;
+  background: var(--panel-bg-alt);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
 }
 
 .step-item {
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--panel-border);
   color: var(--text-muted);
-  font-size: 0.95rem;
-  animation: fadeIn 0.3s ease;
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  animation: fadeIn 0.2s ease;
 }
 
 .step-item:last-child {
@@ -167,6 +297,84 @@ h1, h2, h3 {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrubbable stage timeline (Regex Converter tab) — numbered pills you can
+   click or step through with prev/play/next, each tied to an actual
+   already-computed automaton stage (ε-NFA → NFA → DFA → Minimal DFA →
+   Regex), so scrubbing genuinely swaps the graph on screen rather than
+   just decorating a checklist. */
+.stage-timeline {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.stage-pill {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.stage-pill:hover {
+  border-color: var(--primary-border);
+  color: var(--text-main);
+}
+
+.stage-pill.stage-pill-active {
+  background: var(--live-dim);
+  border-color: var(--live);
+  color: var(--live);
+  font-weight: 600;
+}
+
+.stage-pill.stage-pill-done {
+  color: var(--text-main);
+}
+
+/* Thin, themed scrollbar for the sidebar and steps panels — replaces the
+   default OS scrollbar (with its chunky up/down arrow buttons) with a
+   slim, theme-matched bar. Scroll behavior is unaffected. */
+.controls-sidebar,
+.steps-panel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-border-hover) transparent;
+}
+
+.controls-sidebar::-webkit-scrollbar,
+.steps-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.controls-sidebar::-webkit-scrollbar-track,
+.steps-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.controls-sidebar::-webkit-scrollbar-thumb,
+.steps-panel::-webkit-scrollbar-thumb {
+  background: var(--panel-border-hover);
+  border-radius: 3px;
+}
+
+.controls-sidebar::-webkit-scrollbar-thumb:hover,
+.steps-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-border);
 }

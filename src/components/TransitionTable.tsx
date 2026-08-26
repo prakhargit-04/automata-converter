@@ -1,12 +1,16 @@
 import React from 'react';
 import { type Automaton } from '../lib/types.ts';
 import { buildTransitionTable, type TransitionTableData } from '../lib/core/transitionTable.ts';
+import { getSymbolColor, getSymbolColorDim } from '../lib/alphabetColors.ts';
 
 interface TransitionTableProps {
   automaton: Automaton;
+  /** State currently lit up by the live simulator trace or a stage preview,
+   * so the table can highlight the same row Graph View is highlighting. */
+  activeState?: string | null;
 }
 
-export const TransitionTable: React.FC<TransitionTableProps> = ({ automaton }) => {
+export const TransitionTable: React.FC<TransitionTableProps> = ({ automaton, activeState = null }) => {
   // Build the transition table data
   let data: TransitionTableData | undefined;
   let errorMsg = null;
@@ -19,7 +23,7 @@ export const TransitionTable: React.FC<TransitionTableProps> = ({ automaton }) =
 
   if (errorMsg || !data) {
     return (
-      <div style={{ padding: '1rem', color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: '0.875rem' }}>
+      <div style={{ padding: '1rem', color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: '0.875rem', fontFamily: 'var(--font-sans)' }}>
         <strong>Error building transition table:</strong> {errorMsg}
       </div>
     );
@@ -48,12 +52,13 @@ export const TransitionTable: React.FC<TransitionTableProps> = ({ automaton }) =
           background: rgba(30, 41, 59, 0.4);
           border-radius: 8px;
           border: 1px solid var(--panel-border);
+          font-family: var(--font-mono);
         }
         .transition-table th, .transition-table td {
           border: 1px solid var(--panel-border);
           padding: 0.75rem;
           text-align: center;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-mono);
           font-size: 0.9rem;
         }
         .transition-table th {
@@ -61,8 +66,17 @@ export const TransitionTable: React.FC<TransitionTableProps> = ({ automaton }) =
           color: var(--primary);
           font-weight: 600;
         }
+        .transition-table th.symbol-col {
+          border-bottom-width: 3px;
+        }
         .transition-table tr:hover {
           background-color: rgba(59, 130, 246, 0.05);
+        }
+        .transition-table tr.active-row {
+          background-color: rgba(250, 204, 21, 0.1);
+        }
+        .transition-table tr.active-row td:first-child {
+          color: #facc15;
         }
         .badge-marker {
           font-weight: bold;
@@ -72,6 +86,7 @@ export const TransitionTable: React.FC<TransitionTableProps> = ({ automaton }) =
           display: inline-flex;
           align-items: center;
           gap: 0.25rem;
+          font-family: var(--font-mono);
         }
         .badge-start {
           background: rgba(59, 130, 246, 0.15);
@@ -92,13 +107,19 @@ export const TransitionTable: React.FC<TransitionTableProps> = ({ automaton }) =
             <th>State</th>
             <th>Type</th>
             {data.columns.map(col => (
-              <th key={col}>{col}</th>
+              <th
+                key={col}
+                className="symbol-col"
+                style={{ color: getSymbolColor(col), borderBottomColor: getSymbolColor(col) }}
+              >
+                {col}
+              </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {data.rows.map(row => (
-            <tr key={row.state}>
+            <tr key={row.state} className={activeState === row.state ? 'active-row' : undefined}>
               <td style={{ fontWeight: 600 }}>{row.state}</td>
               <td>
                 {row.isStart && (
@@ -114,7 +135,7 @@ export const TransitionTable: React.FC<TransitionTableProps> = ({ automaton }) =
                 {!row.isStart && !row.isAccept && '—'}
               </td>
               {data.columns.map(col => (
-                <td key={col} style={{ fontFamily: 'monospace' }}>
+                <td key={col} style={{ background: getSymbolColorDim(col) }}>
                   {formatCell(row.cells[col])}
                 </td>
               ))}
